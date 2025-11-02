@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace Bookify.Models
 {
@@ -10,6 +11,8 @@ namespace Bookify.Models
         }
         public DbSet<Book> Books { get; set; }
         public DbSet<Gender> Genders { get; set; }
+     
+        public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

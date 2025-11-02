@@ -21,6 +21,12 @@ builder.Services.AddHttpClient<OpenLibraryService>(c =>
 });
 builder.Services.AddSingleton(new AmazonLinkBuilder(defaultMarket: "com", affiliateTag: null));
 // si tu as un tag affilié: new AmazonLinkBuilder("com", "tonid-20")
+// Configure Entity Framework with MySQL
+builder.Services.AddDbContext<ApplicationDb>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 33))
+    ));
 
 var app = builder.Build();
 
