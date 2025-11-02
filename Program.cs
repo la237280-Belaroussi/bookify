@@ -1,7 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using Bookify.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Configure Entity Framework with MySQL
+builder.Services.AddDbContext<ApplicationDb>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 33))
+    ));
 
 var app = builder.Build();
 
