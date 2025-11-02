@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Bookify.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Bookify.Services; // <= si tu as ajouté OpenLibraryService + AmazonLinkBuilder
+using System.Text.Json;
 
 namespace Bookify.Controllers
 {
@@ -19,39 +20,71 @@ namespace Bookify.Controllers
         }
 
         /// <summary>
-        /// Action pour récupérer tous les livres
+        /// Récupérer tous les livres (avec le nom du genre)
         /// </summary>
-        /// <returns>Une liste de livres</returns>
-        [HttpGet] // GET: api/Books
+        [HttpGet] // GET: api/book
         public async Task<IActionResult> GetAllBooks()
         {
-            var books = await _context.Books.Include(b => b.GenderId).ToListAsync();
-            return new JsonResult(books);
+            // JOIN explicite -> pas d'Include sur la FK
+            var books = await (
+                from b in _context.Books
+                join g in _context.Genders on b.GenderId equals g.Id
+                select new
+                {
+                    b.Id,
+                    b.Title,
+                    b.Author,
+                    b.ISBN,
+                    b.price,          // <= ou b.Price
+                    b.Description,
+                    b.Publisher,
+                    b.GenderId,
+                    GenderName = g.Name
+                }
+            ).ToListAsync();
+
+            return Ok(books);
         }
 
         /// <summary>
-        /// Action pour récupérer un livre par son ID
+        /// Récupérer un livre par ID (avec le nom du genre)
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns>Le livre voulu</returns>
-        [HttpGet("{id}")] // GET: api/Books/5
+        [HttpGet("{id:int}")] // GET: api/book/5
         public async Task<IActionResult> GetBookById(int id)
         {
-            var book = await _context.Books.Include(b => b.GenderId).FirstOrDefaultAsync(b => b.Id == id);
-            if (book == null) return NotFound(new
-            {
-                Message = "Book not found"
-            });
-            return new JsonResult(book);
+            var book = await (
+                from b in _context.Books
+                join g in _context.Genders on b.GenderId equals g.Id
+                where b.Id == id
+                select new
+                {
+                    b.Id,
+                    b.Title,
+                    b.Author,
+                    b.ISBN,
+                    b.price,          // <= ou b.Price
+                    b.Description,
+                    b.Publisher,
+                    b.GenderId,
+                    GenderName = g.Name
+                }
+            ).FirstOrDefaultAsync();
+
+            if (book == null) return NotFound(new { Message = "Book not found" });
+            return Ok(book);
         }
 
         /// <summary>
-        /// Action pour créer un nouveau livre
+        /// Créer un nouveau livre
         /// </summary>
-        /// <returns>Le livre créé avec son ID</returns>
+        [HttpPost] // POST: api/book
         public async Task<IActionResult> Create([FromBody] Book book)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // (optionnel) vérifier que le genre existe
+            var genderExists = await _context.Genders.AnyAsync(g => g.Id == book.GenderId);
+            if (!genderExists) return BadRequest(new { Message = "Invalid GenderId" });
 
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
@@ -60,44 +93,61 @@ namespace Bookify.Controllers
         }
 
         /// <summary>
-        /// Action pour mettre à jour un livre existant
+        /// Mettre à jour un livre
         /// </summary>
-        /// <returns></returns>
-        [HttpPut("{id}")] // PUT: api/Books/5
+        [HttpPut("{id:int}")] // PUT: api/book/5
         public async Task<IActionResult> Update(int id, [FromBody] Book book)
         {
             if (id != book.Id) return BadRequest(new { Message = "ID mismatch" });
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var exists = await _context.Books.AnyAsync(b => b.Id == id);
+            if (!exists) return NotFound(new { Message = "Book not found" });
+
+            var genderExists = await _context.Genders.AnyAsync(g => g.Id == book.GenderId);
+            if (!genderExists) return BadRequest(new { Message = "Invalid GenderId" });
+
             _context.Entry(book).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Books.Any(b => b.Id == id))
-                {
-                    return NotFound(new { Message = "Book not found" });
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
         /// <summary>
-        /// Action pour supprimer un livre
+        /// Supprimer un livre
         /// </summary>
-        [HttpDelete("{id}")] // DELETE: api/Books/5
+        [HttpDelete("{id:int}")] // DELETE: api/book/5
         public async Task<IActionResult> Delete(int id)
         {
             var book = await _context.Books.FindAsync(id);
             if (book == null) return NotFound(new { Message = "Book not found" });
+
             _context.Books.Remove(book);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        /// <summary>
+        /// Rediriger vers Amazon.com pour le livre (via ISBN en DB -> Open Library -> ASIN)
+        /// </summary>
+        [HttpGet("{id:int}/amazon")]
+        public async Task<IActionResult> RedirectBookToAmazon(
+            int id,
+            [FromServices] OpenLibraryService ol,
+            [FromServices] AmazonLinkBuilder amazon,
+            CancellationToken ct = default)
+        {
+            var book = await _context.Books.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
+            if (book == null) return NotFound(new { Message = "Livre introuvable" });
+
+            var isbn = (book.ISBN ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(isbn)) return BadRequest(new { Message = "Ce livre n’a pas d’ISBN" });
+
+            string? asin = null;
+            try { asin = await ol.GetAmazonAsinAsync(isbn, ct); } catch { /* fallback */ }
+
+            var url = amazon.BuildProductOrSearchUrl(isbn, asin); // configuré en .com
+            return Redirect(url.ToString());
         }
     }
 }
