@@ -16,10 +16,8 @@ namespace Bookify.Controllers
             _context = context;
         }
 
-        // GET: /Account/Register
         public IActionResult Register() => View();
 
-        // POST: /Account/Register
         [HttpPost]
         public IActionResult Register(string email, string username, string password)
         {
@@ -48,10 +46,8 @@ namespace Bookify.Controllers
             return RedirectToAction("Login");
         }
 
-        // GET: /Account/Login
         public IActionResult Login() => View();
 
-        // POST: /Account/Login
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
