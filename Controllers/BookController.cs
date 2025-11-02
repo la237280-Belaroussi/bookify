@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Bookify.Models;
 using Bookify.Services; // <= si tu as ajouté OpenLibraryService + AmazonLinkBuilder
 using System.Text.Json;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Bookify.Controllers
 {
@@ -78,6 +79,36 @@ namespace Bookify.Controllers
         /// Créer un nouveau livre
         /// </summary>
         [HttpPost] // POST: api/book
+        /// Action pour récupérer tous les livres
+        /// </summary>
+        /// <returns>Une liste de livres</returns>
+        [HttpGet] // GET: api/Books
+        public async Task<IActionResult> GetAllBooks()
+        {
+            var books = await _context.Books.Include(b => b.GenderId).ToListAsync();
+            return new JsonResult(books);
+        }
+
+        /// <summary>
+        /// Action pour récupérer un livre par son ID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>Le livre voulu</returns>
+        [HttpGet("{id}")] // GET: api/Books/5
+        public async Task<IActionResult> GetBookById(int id)
+        {
+            var book = await _context.Books.Include(b => b.GenderId).FirstOrDefaultAsync(b => b.Id == id);
+            if (book == null) return NotFound(new
+            {
+                Message = "Book not found"
+            });
+            return new JsonResult(book);
+        }
+
+        /// <summary>
+        /// Action pour créer un nouveau livre
+        /// </summary>
+        /// <returns>Le livre créé avec son ID</returns>
         public async Task<IActionResult> Create([FromBody] Book book)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -93,35 +124,41 @@ namespace Bookify.Controllers
         }
 
         /// <summary>
-        /// Mettre à jour un livre
+        /// Action pour mettre à jour un livre existant
         /// </summary>
-        [HttpPut("{id:int}")] // PUT: api/book/5
+        /// <returns></returns>
+        [HttpPut("{id}")] // PUT: api/Books/5
         public async Task<IActionResult> Update(int id, [FromBody] Book book)
         {
             if (id != book.Id) return BadRequest(new { Message = "ID mismatch" });
             if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var exists = await _context.Books.AnyAsync(b => b.Id == id);
-            if (!exists) return NotFound(new { Message = "Book not found" });
-
-            var genderExists = await _context.Genders.AnyAsync(g => g.Id == book.GenderId);
-            if (!genderExists) return BadRequest(new { Message = "Invalid GenderId" });
-
             _context.Entry(book).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Books.Any(b => b.Id == id))
+                {
+                    return NotFound(new { Message = "Book not found" });
+                }
+                else
+                {
+                    throw;
+                }
+            }
             return NoContent();
         }
 
         /// <summary>
-        /// Supprimer un livre
+        /// Action pour supprimer un livre
         /// </summary>
-        [HttpDelete("{id:int}")] // DELETE: api/book/5
+        [HttpDelete("{id}")] // DELETE: api/Books/5
         public async Task<IActionResult> Delete(int id)
         {
             var book = await _context.Books.FindAsync(id);
             if (book == null) return NotFound(new { Message = "Book not found" });
-
             _context.Books.Remove(book);
             await _context.SaveChangesAsync();
             return NoContent();
