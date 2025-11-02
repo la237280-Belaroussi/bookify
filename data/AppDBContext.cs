@@ -9,13 +9,11 @@ public class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        // Change la chaîne de connexion selon ta base SQL Server
-        optionsBuilder.UseSqlServer(@"Server=.\SQLEXPRESS;Database=BookAppDB;Trusted_Connection=True;");
+        optionsBuilder.UseSqlServer(@"Server=.\SQLEXPRESS;Database=BookmanagerDB;Trusted_Connection=True;");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Clés primaires et relations
         modelBuilder.Entity<WishlistItem>()
             .HasKey(w => w.WishlistItemId);
 
