@@ -22,6 +22,7 @@ namespace Bookify.Migrations
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
             modelBuilder.Entity("Bookify.Models.Book", b =>
+            modelBuilder.Entity("Bookify.Models.Review", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -93,6 +94,28 @@ namespace Bookify.Migrations
             modelBuilder.Entity("Bookify.Models.Gender", b =>
                 {
                     b.Navigation("Books");
+                    b.Property<string>("Avis")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("IdLivre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdUtilisateur")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Note")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reviews");
                 });
 #pragma warning restore 612, 618
         }
