@@ -9,7 +9,8 @@ public class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer(@"Server=.\SQLEXPRESS;Database=BookmanagerDB;Trusted_Connection=True;");
+        optionsBuilder.UseMySql(optionsBuilder.Options.FindExtension<Microsoft.EntityFrameworkCore.MySql.Infrastructure.Internal.MySqlOptionsExtension>().ConnectionString,
+            new MySqlServerVersion(new Version(8, 0, 33)));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
