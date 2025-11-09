@@ -18,7 +18,7 @@ namespace Bookify.Models
         [Required(ErrorMessage = "ISBN obligatoire.")]
         public string ISBN { get; set; }
         [Required(ErrorMessage = "Le prix est obligatoire.")]
-        public int Price { get; set; }
+        public decimal Price { get; set; }
         [Required(ErrorMessage = "La description est obligatoire.")]
         public string Description { get; set; }
         [Required(ErrorMessage = "L'éditeur est obligatoire.")]

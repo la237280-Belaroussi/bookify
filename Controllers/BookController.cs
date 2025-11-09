@@ -83,9 +83,30 @@ namespace Bookify.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            // (optionnel) vérifier que le genre existe
-            var genderExists = await _context.Genders.AnyAsync(g => g.Id == book.GenderId);
-            if (!genderExists) return BadRequest(new { Message = "Invalid GenderId" });
+            if(book.Gender != null)
+            {
+                var genderExists = await _context.Genders
+                    .FirstOrDefaultAsync(g => g.Id == book.Gender.Id || g.Name == book.Gender.Name);
+
+                if (genderExists != null)
+                {
+                    book.GenderId = genderExists.Id;
+                    book.Gender = null;
+                }
+                else
+                {
+                    _context.Genders.Add(book.Gender);
+                    await _context.SaveChangesAsync();
+
+                    book.GenderId = book.Gender.Id;
+                    book.Gender = null;
+                }
+            }
+            else
+            {
+                var genderExists = await _context.Genders.AnyAsync(g => g.Id == book.GenderId);
+                if (!genderExists) return BadRequest(new { Message = "Invalid GenderId" });
+            }
 
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
