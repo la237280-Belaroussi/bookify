@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bookify.Models
 {
-    public class Wishlist
+    public class LivreLu
     {
         [Key]
         public int Id { get; set; }
@@ -12,6 +12,6 @@ namespace Bookify.Models
         public int BookId { get; set; }
         public Book Book { get; set; } = null!;
 
-        public DateTime DateAdded { get; set; } = DateTime.Now;
+        public DateTime DateLu { get; set; } = DateTime.Now;
     }
 }

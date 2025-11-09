@@ -18,9 +18,9 @@ namespace Bookify.Models
         [Required(ErrorMessage = "ISBN obligatoire.")]
         public string ISBN { get; set; }
         [Required(ErrorMessage = "Le prix est obligatoire.")]
-        public int price { get; set; }
+        public decimal Price { get; set; }
         [Required(ErrorMessage = "La description est obligatoire.")]
-        public string Description { get; set; } 
+        public string Description { get; set; }
         [Required(ErrorMessage = "L'éditeur est obligatoire.")]
         public string Publisher { get; set; }
 
@@ -28,6 +28,7 @@ namespace Bookify.Models
         [ForeignKey("Gender")]
         public int GenderId { get; set; }
         // Navigation
-        public Gender gender { get; set; }
+        public Gender Gender { get; set; }
+        public ICollection<Review> Reviews { get; set; }
     }
 }

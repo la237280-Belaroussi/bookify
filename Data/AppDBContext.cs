@@ -1,18 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Bookify.Models;
 
-namespace Bookify.Models
+namespace Bookify.Data
 {
-    public class ApplicationDb : DbContext
+    public class AppDBContext : DbContext
     {
-        public ApplicationDb(DbContextOptions<ApplicationDb> options)
+        public AppDBContext(DbContextOptions<AppDBContext> options)
             : base(options)
         {
         }
+
         public DbSet<Book> Books { get; set; }
         public DbSet<Gender> Genders { get; set; }
-     
+        public DbSet<User> Users { get; internal set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Wishlist> Wishlist { get; set; }
+        public DbSet<LivreLu> LivreLu { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,73 +1,75 @@
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Bookify.Models;
+using Bookify.Data;
 
-public class UserBookService
+namespace Bookify.Controllers
 {
-	private readonly AppDbContext _context;
+    [Route("api/[controller]")]
+    [ApiController]
+    public class WishlistController : ControllerBase
+    {
+        private readonly AppDBContext _context;
 
-	public UserBookService(AppDbContext context)
-	{
-		_context = context;
-	}
+        public WishlistController(AppDBContext context)
+        {
+            _context = context;
+        }
 
-	// Ajout � la wishlist
-	public async Task AddToWishlist(int userId, int bookId)
-	{
-		if (!await _context.Wishlist.AnyAsync(w => w.UserId == userId && w.BookId == bookId))
-		{
-			_context.Wishlist.Add(new WishlistItem { UserId = userId, BookId = bookId });
-			await _context.SaveChangesAsync();
-		}
-	}
 
-	// Suppression de la wishlist
-	public async Task RemoveFromWishlist(int userId, int bookId)
-	{
-		var item = await _context.Wishlist.FirstOrDefaultAsync(w => w.UserId == userId && w.BookId == bookId);
-		if (item != null)
-		{
-			_context.Wishlist.Remove(item);
-			await _context.SaveChangesAsync();
-		}
-	}
+        //Récupérer les livres de la wishlist
+        [HttpGet]
+        public async Task<IActionResult> GetWishlist()
+        {
+            var wishlist = await _context.Wishlist
+                .Include(w => w.Book)
+                .Select(w => new
+                {
+                    w.Id,
+                    w.BookId,
+                    w.Book.Title,
+                    w.Book.Author,
+                    w.Book.ISBN,
+                    w.Book.Price,
+                    w.Book.Publisher,
+                    w.DateAdded
+                })
+                .ToListAsync();
 
-	// R�cup�rer la wishlist
-	public async Task<List<Book>> GetWishlist(int userId)
-	{
-		return await _context.Wishlist
-			.Where(w => w.UserId == userId)
-			.Include(w => w.Book)
-			.Select(w => w.Book)
-			.ToListAsync();
-	}
+            return Ok(wishlist);
+        }
 
-	// Ajouter livres lus
-	public async Task AddToReadBooks(int userId, int bookId)
-	{
-		if (!await _context.ReadBooks.AnyAsync(r => r.UserId == userId && r.BookId == bookId))
-		{
-			_context.ReadBooks.Add(new ReadBook { UserId = userId, BookId = bookId });
-			await _context.SaveChangesAsync();
-		}
-	}
+        //Ajouter un livre à la wishlist
+        [HttpPost("{bookId:int}")]
+        public async Task<IActionResult> AddToWishlist(int bookId)
+        {
+            var bookExists = await _context.Books.AnyAsync(b => b.Id == bookId);
+            if (!bookExists)
+                return NotFound(new { Message = "Livre introuvable." });
 
-	//Supprimer livres lus
-	public async Task RemoveFromReadBooks(int userId, int bookId)
-	{
-		var item = await _context.ReadBooks.FirstOrDefaultAsync(r => r.UserId == userId && r.BookId == bookId);
-		if (item != null)
-		{
-			_context.ReadBooks.Remove(item);
-			await _context.SaveChangesAsync();
-		}
-	}
+            var alreadyInList = await _context.Wishlist.AnyAsync(w => w.BookId == bookId);
+            if (alreadyInList)
+                return BadRequest(new { Message = "Ce livre est déjà dans la wishlist." });
 
-	//R�cup�rer livres lus
-	public async Task<List<Book>> GetReadBooks(int userId)
-	{
-		return await _context.ReadBooks
-			.Where(r => r.UserId == userId)
-			.Include(r => r.Book)
-			.Select(r => r.Book)
-			.ToListAsync();
-	}
+            var wishlist = new Wishlist { BookId = bookId };
+            _context.Wishlist.Add(wishlist);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Livre ajouté avec succès à la wishlist." });
+        }
+
+        //Supprimer un livre de la wishlist
+        [HttpDelete("{bookId:int}")]
+        public async Task<IActionResult> RemoveFromWishlist(int bookId)
+        {
+            var item = await _context.Wishlist.FirstOrDefaultAsync(w => w.BookId == bookId);
+            if (item == null)
+                return NotFound(new { Message = "Livre non présent dans la wishlist." });
+
+            _context.Wishlist.Remove(item);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Livre retiré avec succès de la wishlist." });
+        }
+    }
 }
