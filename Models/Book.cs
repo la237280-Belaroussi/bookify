@@ -29,5 +29,6 @@ namespace Bookify.Models
         public int GenderId { get; set; }
         // Navigation
         public Gender Gender { get; set; }
+        public ICollection<Review> Reviews { get; set; }
     }
 }
