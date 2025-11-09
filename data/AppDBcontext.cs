@@ -1,44 +1,33 @@
 using Microsoft.EntityFrameworkCore;
+using Bookify.Models;
 
-public class AppDbContext : DbContext
+namespace Bookify.Data
 {
-    public DbSet<User> Users { get; set; }
-    public DbSet<Book> Books { get; set; }
-    public DbSet<WishlistItem> Wishlist { get; set; }
-    public DbSet<ReadBook> ReadBooks { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public class AppDBContext : DbContext
     {
-        optionsBuilder.UseMySql(optionsBuilder.Options.FindExtension<Microsoft.EntityFrameworkCore.MySql.Infrastructure.Internal.MySqlOptionsExtension>().ConnectionString,
-            new MySqlServerVersion(new Version(8, 0, 33)));
-    }
+        public AppDBContext(DbContextOptions<AppDBContext> options)
+            : base(options)
+        {
+        }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<WishlistItem>()
-            .HasKey(w => w.WishlistItemId);
+        public DbSet<Book> Books { get; set; }
+        public DbSet<Gender> Genders { get; set; }
+        public DbSet<User> Users { get; set; }
 
-        modelBuilder.Entity<ReadBook>()
-            .HasKey(r => r.ReadBookId);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<WishlistItem>()
-            .HasOne(w => w.User)
-            .WithMany(u => u.Wishlist)
-            .HasForeignKey(w => w.UserId);
-
-        modelBuilder.Entity<WishlistItem>()
-            .HasOne(w => w.Book)
-            .WithMany(b => b.WishlistItems)
-            .HasForeignKey(w => w.BookId);
-
-        modelBuilder.Entity<ReadBook>()
-            .HasOne(r => r.User)
-            .WithMany(u => u.ReadBooks)
-            .HasForeignKey(r => r.UserId);
-
-        modelBuilder.Entity<ReadBook>()
-            .HasOne(r => r.Book)
-            .WithMany(b => b.ReadBooks)
-            .HasForeignKey(r => r.BookId);
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (!property.IsPrimaryKey() && property.ClrType == typeof(string))
+                    {
+                        property.IsNullable = false;
+                    }
+                }
+            }
+        }
     }
 }

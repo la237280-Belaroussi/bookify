@@ -1,51 +1,39 @@
-using Bookify.Models;
-using Bookify.Services;          // <-- si tu as créé OpenLibraryService / AmazonLinkBuilder
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Bookify.Data;
 using Bookify.Models;
+using Bookify.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- DB (XAMPP/MariaDB) ---
-// appsettings: "DefaultConnection": "Server=127.0.0.1;Port=3306;Database=bookmanagerdb;User=root;Password="
+// --- Database ---
 var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ApplicationDb>(opt =>
-    opt.UseMySql(cs, ServerVersion.AutoDetect(cs)));   // ✅ AutoDetect (MariaDB/MySQL)
+builder.Services.AddDbContext<AppDBContext>(opt =>
+    opt.UseMySql(cs, ServerVersion.AutoDetect(cs)));
 
-// --- MVC & API ---
+// --- MVC Controllers + Views ---
 builder.Services.AddControllersWithViews();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-    });
 
-// Configure Entity Framework with MySQL
-builder.Services.AddDbContext<ApplicationDb>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 33))
-    ));
-
-// --- Open Library + Amazon.com (optionnel, pour /api/book/{id}/amazon) ---
+// --- Services OpenLibrary et Amazon ---
 builder.Services.AddHttpClient<OpenLibraryService>(c =>
 {
     c.Timeout = TimeSpan.FromSeconds(5);
     c.DefaultRequestHeaders.UserAgent.ParseAdd("Bookify/1.0");
 });
 builder.Services.AddSingleton(new AmazonLinkBuilder(defaultMarket: "com", affiliateTag: null));
-// si tu as un tag affilié: new AmazonLinkBuilder("com", "tonid-20")
-// Configure Entity Framework with MySQL
-builder.Services.AddDbContext<ApplicationDb>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 33))
-    ));
+builder.Services.AddScoped<AuthorizationService>();
+
+// --- Swagger ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Bookify API",
+        Version = "v1",
+        Description = "API REST pour la gestion des livres et des genres"
+    });
+});
 
 var app = builder.Build();
 
@@ -56,25 +44,24 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// --- Swagger (accessible dans tous les environnements) ---
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Bookify API v1");
+    c.RoutePrefix = ""; // Swagger directement sur la racine http://localhost:5211/
+});
+
+// --- Middleware ---
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// -- Routing & Authorization ---
 app.UseRouting();
 app.UseAuthorization();
-
-// --- Routing ---
-// API attribuées (ex: /api/book, /api/book/{id}/amazon)
 app.MapControllers();
 
-// Vues MVC (si tu as HomeController/Views)
-app.MapDefaultControllerRoute(); // équivaut à {controller=Home}/{action=Index}/{id?}
-
-// Si tu veux absolument une route par défaut spécifique :
-// app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Books}/{action=Index}/{id?}");
+// Route par défaut MVC (Controllers + Views)
+app.MapDefaultControllerRoute();
 
 app.Run();
