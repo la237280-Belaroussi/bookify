@@ -1,5 +1,8 @@
-﻿namespace Bookify.Models
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Bookify.Models
 {
+    [Table("users")]
     public class User
     {
         public int Id { get; set; }
