@@ -14,6 +14,8 @@ namespace Bookify.Data
         public DbSet<Gender> Genders { get; set; }
         public DbSet<User> Users { get; internal set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Wishlist> Wishlist { get; set; }
+        public DbSet<LivreLu> LivreLu { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
