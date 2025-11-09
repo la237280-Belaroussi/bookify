@@ -1,4 +1,4 @@
-namespace Bookify.Models
+﻿namespace Bookify.Models
 {
     public class User
     {

@@ -12,6 +12,7 @@ namespace Bookify.Data
 
         public DbSet<Book> Books { get; set; }
         public DbSet<Gender> Genders { get; set; }
+        public DbSet<User> Users { get; internal set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

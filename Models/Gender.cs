@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Bookify.Models
 {
@@ -13,7 +14,9 @@ namespace Bookify.Models
         public int Id { get; set; }
         [Required(ErrorMessage = "Le nom du genre est obligatoire.")]
         public string Name { get; set; }
+
         // Navigation property for related books
-        public ICollection<Book> Books { get; set; }
+        [JsonIgnore]
+        public ICollection<Book> Books { get; set; } = new List<Book>();
     }
 }
