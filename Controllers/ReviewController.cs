@@ -1,61 +1,66 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Bookify.Models;
+using Bookify.Data;
 
 namespace Bookify.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] 
+    [Route("api/[controller]")]
     public class ReviewsController : ControllerBase
     {
-        private readonly ApplicationDb _context;
+        private readonly AppDBContext _context;
 
-        // Injecte le contexte de base de données
-        public ReviewsController(ApplicationDb context)
+        public ReviewsController(AppDBContext context)
         {
             _context = context;
         }
 
         // GET: api/Reviews
-        // Récupère toutes les reviews
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
         {
-            return await _context.Reviews.ToListAsync();
+            var reviews = await _context.Reviews
+                .Include(r => r.Book)
+                .Include(r => r.User)
+                .ToListAsync();
+            return Ok(reviews);
         }
 
-        // GET: api/Reviews/{id}
-        // Récupère une review par son identifiant
+        // GET: api/Reviews/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Review>> GetReview(int id)
         {
-            var review = await _context.Reviews.FindAsync(id);
+            var review = await _context.Reviews
+                .Include(r => r.Book)
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (review == null)
-                return NotFound(); // 404 si la review n'existe pas
+                return NotFound();
 
-            return review;
+            return Ok(review);
         }
 
         // POST: api/Reviews
-        // Crée une nouvelle review
         [HttpPost]
-        public async Task<ActionResult<Review>> PostReview(Review review)
+        public async Task<ActionResult<Review>> CreateReview([FromBody] Review review)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
-            // Renvoie 201 Created avec l'URL de la nouvelle review
             return CreatedAtAction(nameof(GetReview), new { id = review.Id }, review);
         }
 
-        // PUT: api/Reviews/{id}
-        // Met à jour une review existante
+        // PUT: api/Reviews/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutReview(int id, Review review)
+        public async Task<IActionResult> UpdateReview(int id, [FromBody] Review review)
         {
             if (id != review.Id)
-                return BadRequest(); // 400 si l'ID ne correspond pas
+                return BadRequest();
 
             _context.Entry(review).State = EntityState.Modified;
 
@@ -65,29 +70,32 @@ namespace Bookify.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.Reviews.Any(r => r.Id == id))
-                    return NotFound(); 
+                if (!ReviewExists(id))
+                    return NotFound();
                 else
                     throw;
             }
 
-            return NoContent(); 
+            return NoContent();
         }
 
-        // DELETE: api/Reviews/{id}
-        // Supprime une review
+        // DELETE: api/Reviews/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteReview(int id)
         {
             var review = await _context.Reviews.FindAsync(id);
-
             if (review == null)
                 return NotFound();
 
             _context.Reviews.Remove(review);
             await _context.SaveChangesAsync();
 
-            return NoContent(); 
+            return NoContent();
+        }
+
+        private bool ReviewExists(int id)
+        {
+            return _context.Reviews.Any(e => e.Id == id);
         }
     }
 }
