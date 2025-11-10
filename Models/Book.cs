@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Bookify.Models
 {
@@ -29,6 +30,8 @@ namespace Bookify.Models
         public int GenderId { get; set; }
         // Navigation
         public Gender Gender { get; set; }
-        public ICollection<Review> Reviews { get; set; }
+
+        [JsonIgnore]
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }
