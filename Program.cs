@@ -14,6 +14,18 @@ builder.Services.AddDbContext<AppDBContext>(opt =>
 // --- MVC Controllers + Views ---
 builder.Services.AddControllersWithViews();
 
+// --- CORS pour Angular (DEV) ---
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // --- Services OpenLibrary et Amazon ---
 builder.Services.AddHttpClient<OpenLibraryService>(c =>
 {
@@ -44,24 +56,26 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// --- Swagger (accessible dans tous les environnements) ---
+// --- Swagger überall ---
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Bookify API v1");
-    c.RoutePrefix = ""; // Swagger directement sur la racine http://localhost:5211/
+    c.RoutePrefix = ""; // accès direct via https://localhost:7079/
 });
 
-// --- Middleware ---
+// --- Middleware |
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// -- Routing & Authorization ---
 app.UseRouting();
-app.UseAuthorization();
-app.MapControllers();
 
-// Route par défaut MVC (Controllers + Views)
+// --- CORS doit être ici ---
+app.UseCors();
+
+app.UseAuthorization();
+
+app.MapControllers();
 app.MapDefaultControllerRoute();
 
 app.Run();
