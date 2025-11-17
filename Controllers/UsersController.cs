@@ -116,7 +116,7 @@ namespace Bookify.Controllers
             var userExists = UserExists(username, password);
             if (userExists == null)
             {
-                return BadRequest();
+                return Unauthorized("Identifiants invalides");
             }
             else
             {
