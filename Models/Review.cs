@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Bookify.Models
+
 {
     public class Review
     {
@@ -11,11 +13,13 @@ namespace Bookify.Models
         [Required]
         [ForeignKey("Book")]
         public int BookId { get; set; }
+        [JsonIgnore]
         public Book Book { get; set; }
 
         [Required]
         [ForeignKey("User")]
         public int UserId { get; set; }
+        [JsonIgnore]
         public User User { get; set; }
 
         [Required]

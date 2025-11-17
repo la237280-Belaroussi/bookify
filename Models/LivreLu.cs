@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Bookify.Models
 {
@@ -10,6 +11,7 @@ namespace Bookify.Models
 
         [ForeignKey("Book")]
         public int BookId { get; set; }
+        [JsonIgnore]
         public Book Book { get; set; } = null!;
 
         public DateTime DateLu { get; set; } = DateTime.Now;
